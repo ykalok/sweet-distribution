@@ -45,6 +45,10 @@ public class Product {
     @Builder.Default
     private Integer minOrderQuantity = 1;
 
+    @Column(name = "unit", nullable = false)
+    @Builder.Default
+    private String unit = "UNIT";
+
     @Column(name = "is_active")
     @Builder.Default
     private Boolean isActive = true;

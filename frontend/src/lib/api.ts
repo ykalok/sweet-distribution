@@ -98,9 +98,9 @@ export const invoiceApi = {
 // Addresses
 export const addressApi = {
   getAll: () => api.get('/addresses'),
-  create: (data: { addressLine1: string; addressLine2?: string; label?: string; city: string; state: string; pincode: string; isDefault?: boolean }) =>
+  create: (data: { addressLine1: string; addressLine2?: string; label?: string; city: string; state: string; pincode: string; mobileNumber?: string; isDefault?: boolean }) =>
     api.post('/addresses', data),
-  update: (id: string, data: { addressLine1: string; addressLine2?: string; label?: string; city: string; state: string; pincode: string; isDefault?: boolean }) =>
+  update: (id: string, data: { addressLine1: string; addressLine2?: string; label?: string; city: string; state: string; pincode: string; mobileNumber?: string; isDefault?: boolean }) =>
     api.put(`/addresses/${id}`, data),
   delete: (id: string) =>
     api.delete(`/addresses/${id}`),

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
@@ -8,14 +8,31 @@ import { Checkout } from './pages/customer/Checkout';
 import { OrderTracking } from './pages/customer/OrderTracking';
 import { ProductManagement } from './pages/admin/ProductManagement';
 import { OrderManagement } from './pages/admin/OrderManagement';
-import { ShoppingCart, Package, LogOut, Store, Settings, Home, Loader2, Sparkles } from 'lucide-react';
+import { BillingSettings } from './pages/admin/BillingSettings';
+import { ShoppingCart, Package, LogOut, Store, Settings, Home, Loader2, Sparkles, Receipt } from 'lucide-react';
+import { AnnouncementBanner } from './components/AnnouncementBanner';
+import { SiteInfoFooter } from './components/SiteInfoFooter';
+import { cartApi } from './lib/api';
 
-type Page = 'products' | 'cart' | 'checkout' | 'orders' | 'admin-products' | 'admin-orders';
+type Page = 'products' | 'cart' | 'checkout' | 'orders' | 'admin-products' | 'admin-orders' | 'admin-billing';
 
 function AppContent() {
   const { profile, loading, signOut, isAdmin } = useAuth();
   const [showLogin, setShowLogin] = useState(true);
   const [currentPage, setCurrentPage] = useState<Page>('products');
+  const [cartCount, setCartCount] = useState(0);
+
+  useEffect(() => {
+    if (!profile || isAdmin) return;
+    fetchCartCount();
+  }, [profile, currentPage]);
+
+  const fetchCartCount = () => {
+    cartApi.get().then(({ data }) => {
+      const items = data.data || [];
+      setCartCount(items.reduce((s: number, i: any) => s + i.quantity, 0));
+    }).catch(() => {});
+  };
 
   if (loading) {
     return (
@@ -54,7 +71,7 @@ function AppContent() {
               </div>
               <div>
                 <h1 className="text-lg font-bold text-gray-900 flex items-center gap-1.5">
-                  B2B Sweets
+                  F&C Sweet
                   <Sparkles className="w-4 h-4 text-amber-500" />
                 </h1>
                 <p className="text-[11px] text-gray-500 font-medium tracking-wide uppercase">
@@ -68,13 +85,14 @@ function AppContent() {
                 <>
                   <NavButton icon={<Home className="w-[18px] h-[18px]" />} label="Products" active={currentPage === 'products'} onClick={() => setCurrentPage('products')} />
                   <NavButton icon={<Package className="w-[18px] h-[18px]" />} label="My Orders" active={currentPage === 'orders'} onClick={() => setCurrentPage('orders')} />
-                  <NavButton icon={<ShoppingCart className="w-[18px] h-[18px]" />} label="Cart" active={currentPage === 'cart'} onClick={() => setCurrentPage('cart')} />
+                  <NavButton icon={<ShoppingCart className="w-[18px] h-[18px]" />} label="Cart" active={currentPage === 'cart'} onClick={() => setCurrentPage('cart')} badge={cartCount} />
                 </>
               )}
               {isAdmin && (
                 <>
                   <NavButton icon={<Store className="w-[18px] h-[18px]" />} label="Products" active={currentPage === 'admin-products'} onClick={() => setCurrentPage('admin-products')} />
                   <NavButton icon={<Settings className="w-[18px] h-[18px]" />} label="Orders" active={currentPage === 'admin-orders'} onClick={() => setCurrentPage('admin-orders')} />
+                  <NavButton icon={<Receipt className="w-[18px] h-[18px]" />} label="Billing" active={currentPage === 'admin-billing'} onClick={() => setCurrentPage('admin-billing')} />
                 </>
               )}
             </div>
@@ -105,40 +123,40 @@ function AppContent() {
               <>
                 <NavButton icon={<Home className="w-4 h-4" />} label="Products" active={currentPage === 'products'} onClick={() => setCurrentPage('products')} />
                 <NavButton icon={<Package className="w-4 h-4" />} label="Orders" active={currentPage === 'orders'} onClick={() => setCurrentPage('orders')} />
-                <NavButton icon={<ShoppingCart className="w-4 h-4" />} label="Cart" active={currentPage === 'cart'} onClick={() => setCurrentPage('cart')} />
+                <NavButton icon={<ShoppingCart className="w-4 h-4" />} label="Cart" active={currentPage === 'cart'} onClick={() => setCurrentPage('cart')} badge={cartCount} />
               </>
             )}
             {isAdmin && (
               <>
                 <NavButton icon={<Store className="w-4 h-4" />} label="Products" active={currentPage === 'admin-products'} onClick={() => setCurrentPage('admin-products')} />
                 <NavButton icon={<Settings className="w-4 h-4" />} label="Orders" active={currentPage === 'admin-orders'} onClick={() => setCurrentPage('admin-orders')} />
+                <NavButton icon={<Receipt className="w-4 h-4" />} label="Billing" active={currentPage === 'admin-billing'} onClick={() => setCurrentPage('admin-billing')} />
               </>
             )}
           </div>
         </div>
       </nav>
 
+      <AnnouncementBanner isAdmin={isAdmin} />
+
       <main className="animate-fade-in">
-        {!isAdmin && currentPage === 'products' && <Products />}
-        {!isAdmin && currentPage === 'cart' && <Cart onCheckout={() => setCurrentPage('checkout')} />}
+        {!isAdmin && currentPage === 'products' && <Products onCartUpdate={fetchCartCount} />}
+        {!isAdmin && currentPage === 'cart' && <Cart onCheckout={() => setCurrentPage('checkout')} onCartUpdate={fetchCartCount} />}
         {!isAdmin && currentPage === 'checkout' && (
           <Checkout onComplete={() => setCurrentPage('orders')} onBack={() => setCurrentPage('cart')} />
         )}
         {!isAdmin && currentPage === 'orders' && <OrderTracking />}
         {isAdmin && currentPage === 'admin-products' && <ProductManagement />}
         {isAdmin && currentPage === 'admin-orders' && <OrderManagement />}
+        {isAdmin && currentPage === 'admin-billing' && <BillingSettings />}
       </main>
 
-      <footer className="mt-16 border-t border-gray-200/50 bg-white/50 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 py-6 text-center text-sm text-gray-400">
-          © {new Date().getFullYear()} B2B Sweet Distribution · Premium Sweets for Your Business
-        </div>
-      </footer>
+      <SiteInfoFooter isAdmin={isAdmin} />
     </div>
   );
 }
 
-function NavButton({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active: boolean; onClick: () => void }) {
+function NavButton({ icon, label, active, onClick, badge }: { icon: React.ReactNode; label: string; active: boolean; onClick: () => void; badge?: number }) {
   return (
     <button
       onClick={onClick}
@@ -148,7 +166,14 @@ function NavButton({ icon, label, active, onClick }: { icon: React.ReactNode; la
           : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100/80'
       }`}
     >
-      {icon}
+      <span className="relative">
+        {icon}
+        {badge != null && badge > 0 && (
+          <span className="absolute -top-2 -right-2 min-w-[16px] h-4 bg-orange-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5">
+            {badge > 99 ? '99+' : badge}
+          </span>
+        )}
+      </span>
       {label}
       {active && (
         <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 bg-orange-500 rounded-full" />

@@ -1,0 +1,2 @@
+-- V4__add_product_unit.sql
+ALTER TABLE products ADD COLUMN IF NOT EXISTS unit VARCHAR(10) NOT NULL DEFAULT 'UNIT';

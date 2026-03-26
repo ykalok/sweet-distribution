@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ShoppingCart, Plus, Minus, Search, Loader2, PackageOpen, Sparkles } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Search, Loader2, PackageOpen, Sparkles, X } from 'lucide-react';
 import { productApi, cartApi } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -12,6 +12,7 @@ interface Product {
   imageUrl: string | null;
   stockQuantity: number;
   minOrderQuantity: number;
+  unit: string;
   isActive: boolean;
 }
 
@@ -40,7 +41,7 @@ const ProductSkeleton = () => (
   </div>
 );
 
-export const Products = () => {
+export const Products = ({ onCartUpdate }: { onCartUpdate?: () => void }) => {
   const { profile } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -50,6 +51,8 @@ export const Products = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
+  const [zoomedProduct, setZoomedProduct] = useState<Product | null>(null);
+  const [stockWarning, setStockWarning] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -81,6 +84,7 @@ export const Products = () => {
     try {
       const { data } = await cartApi.get();
       setCartItems(data.data || []);
+      onCartUpdate?.();
     } catch { /* not logged in or empty */ }
   };
 
@@ -111,6 +115,11 @@ export const Products = () => {
   const getCartItemId = (productId: string) =>
     cartItems.find(c => c.productId === productId)?.id;
 
+  const showStockWarning = (msg: string) => {
+    setStockWarning(msg);
+    setTimeout(() => setStockWarning(null), 3000);
+  };
+
   const addToCart = async (product: Product) => {
     setAddingToCart(product.id);
     try {
@@ -127,6 +136,11 @@ export const Products = () => {
     const current = getCartQuantity(productId);
     const newQty = current + change;
     if (!itemId) return;
+    const product = products.find(p => p.id === productId);
+    if (product && change > 0 && newQty > product.stockQuantity) {
+      showStockWarning(`Only ${product.stockQuantity} ${product.unit === 'KG' ? 'kg' : 'units'} available for "${product.name}"`);
+      return;
+    }
     try {
       if (newQty < minQty) {
         await cartApi.remove(itemId);
@@ -208,8 +222,9 @@ export const Products = () => {
             const stock = getStockStatus(product);
             return (
               <div key={product.id}
-                className="card overflow-hidden group animate-slide-up"
-                style={{ animationDelay: `${i * 0.05}s` }}>
+                className="card overflow-hidden group animate-slide-up cursor-pointer"
+                style={{ animationDelay: `${i * 0.05}s` }}
+                onClick={() => setZoomedProduct(product)}>
                 <div className="h-44 bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center relative overflow-hidden">
                   {product.imageUrl ? (
                     <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -238,25 +253,25 @@ export const Products = () => {
                   <div className="flex items-end justify-between mb-3">
                     <div>
                       <span className="text-xl font-bold text-gray-900">₹{product.price}</span>
-                      <span className="text-xs text-gray-400 ml-1">/unit</span>
+                      <span className="text-xs text-gray-400 ml-1">/{product.unit === 'KG' ? 'kg' : 'unit'}</span>
                     </div>
-                    <span className="text-[11px] text-gray-400 font-medium">Min: {product.minOrderQuantity}</span>
+                    <span className="text-[11px] text-gray-400 font-medium">Min: {product.minOrderQuantity} {product.unit === 'KG' ? 'kg' : 'units'}</span>
                   </div>
 
                   {inCart > 0 ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
                       <button onClick={() => updateQuantity(product.id, -product.minOrderQuantity, product.minOrderQuantity)}
                         className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors">
                         <Minus className="w-3.5 h-3.5" />
                       </button>
                       <span className="flex-1 text-center font-semibold text-sm text-gray-900">{inCart}</span>
-                      <button onClick={() => updateQuantity(product.id, product.minOrderQuantity, product.minOrderQuantity)}
+                      <button onClick={() => updateQuantity(product.id, 1, product.minOrderQuantity)}
                         className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors">
                         <Plus className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ) : (
-                    <button onClick={() => addToCart(product)}
+                    <button onClick={(e) => { e.stopPropagation(); addToCart(product); }}
                       disabled={product.stockQuantity < product.minOrderQuantity || addingToCart === product.id}
                       className="btn-primary w-full py-2.5 text-sm flex items-center justify-center gap-2">
                       {addingToCart === product.id ? (
@@ -270,6 +285,79 @@ export const Products = () => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Stock Warning Toast */}
+      {stockWarning && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white text-sm font-medium px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 animate-scale-in">
+          <span>⚠️</span> {stockWarning}
+        </div>
+      )}
+
+      {/* Product Zoom Modal */}
+      {zoomedProduct && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setZoomedProduct(null)}
+        >
+          <div
+            className="bg-white rounded-3xl shadow-2xl w-full max-w-md animate-scale-in overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="relative h-64 bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center">
+              {zoomedProduct.imageUrl ? (
+                <img src={zoomedProduct.imageUrl} alt={zoomedProduct.name} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-8xl">{SWEET_EMOJIS[zoomedProduct.category] || '🍬'}</span>
+              )}
+              <button
+                onClick={() => setZoomedProduct(null)}
+                className="absolute top-3 right-3 p-2 bg-black/40 hover:bg-black/60 text-white rounded-xl transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              <span className={`absolute top-3 left-3 badge ${getStockStatus(zoomedProduct).color}`}>
+                {getStockStatus(zoomedProduct).label}
+              </span>
+            </div>
+            <div className="p-6">
+              <span className="badge bg-gray-100 text-gray-600 mb-2">{zoomedProduct.category}</span>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">{zoomedProduct.name}</h2>
+              <p className="text-gray-500 text-sm leading-relaxed mb-4">{zoomedProduct.description}</p>
+              <div className="flex items-end justify-between mb-5">
+                <div>
+                  <span className="text-2xl font-bold text-gray-900">₹{zoomedProduct.price}</span>
+                  <span className="text-xs text-gray-400 ml-1">/{zoomedProduct.unit === 'KG' ? 'kg' : 'unit'}</span>
+                </div>
+                <span className="text-xs text-gray-400">Min: {zoomedProduct.minOrderQuantity} {zoomedProduct.unit === 'KG' ? 'kg' : 'units'}</span>
+              </div>
+              {getCartQuantity(zoomedProduct.id) > 0 ? (
+                <div className="flex items-center gap-3">
+                  <button onClick={() => updateQuantity(zoomedProduct.id, -zoomedProduct.minOrderQuantity, zoomedProduct.minOrderQuantity)}
+                    className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-colors">
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <span className="flex-1 text-center font-bold text-gray-900">{getCartQuantity(zoomedProduct.id)}</span>
+                  <button onClick={() => updateQuantity(zoomedProduct.id, 1, zoomedProduct.minOrderQuantity)}
+                    className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-colors">
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => addToCart(zoomedProduct)}
+                  disabled={zoomedProduct.stockQuantity < zoomedProduct.minOrderQuantity || addingToCart === zoomedProduct.id}
+                  className="btn-primary w-full py-3 text-sm flex items-center justify-center gap-2">
+                  {addingToCart === zoomedProduct.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <><ShoppingCart className="w-4 h-4" /> Add to Cart</>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

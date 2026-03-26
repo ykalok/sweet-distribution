@@ -52,6 +52,7 @@ public class ProductService {
                 .imageUrl(dto.imageUrl())
                 .stockQuantity(dto.stockQuantity())
                 .minOrderQuantity(dto.minOrderQuantity())
+                .unit(dto.unit() != null ? dto.unit() : "UNIT")
                 .isActive(dto.isActive() != null ? dto.isActive() : true)
                 .build();
         return toDTO(productRepository.save(product));
@@ -67,6 +68,7 @@ public class ProductService {
         product.setImageUrl(dto.imageUrl());
         product.setStockQuantity(dto.stockQuantity());
         product.setMinOrderQuantity(dto.minOrderQuantity());
+        product.setUnit(dto.unit() != null ? dto.unit() : "UNIT");
         if (dto.isActive() != null) {
             product.setIsActive(dto.isActive());
         }
@@ -87,7 +89,7 @@ public class ProductService {
         return new ProductDTO(
                 p.getId(), p.getName(), p.getDescription(), p.getPrice(),
                 p.getCategory(), p.getImageUrl(), p.getStockQuantity(),
-                p.getMinOrderQuantity(), p.getIsActive(),
+                p.getMinOrderQuantity(), p.getUnit(), p.getIsActive(),
                 p.getCreatedAt(), p.getUpdatedAt()
         );
     }

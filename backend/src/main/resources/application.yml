@@ -3,12 +3,12 @@ server:
 
 spring:
   application:
-    name: sweet-distribution-backend
+    name: sweetdistribution
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/sweet-distribution}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:testing123}
+    url: jdbc:postgresql://localhost:5432/sweetdistribution
+    username: postgres
+    password: 9969
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 5
@@ -31,13 +31,13 @@ spring:
 
 # JWT Configuration
 jwt:
-  secret: ${JWT_SECRET:YourSuperSecretKeyForJWTTokenGenerationMustBeAtLeast256BitsLong!!}
+  secret: YourSuperSecretKeyForJWTTokenGenerationMustBeAtLeast256BitsLong!!
   expiration: 86400000
 
 # Razorpay Configuration
 razorpay:
-  key-id: ${RAZORPAY_KEY_ID:rzp_test_placeholder}
-  key-secret: ${RAZORPAY_KEY_SECRET:test_secret_placeholder}
+  key-id: rzp_test_placeholder
+  key-secret: test_secret_placeholder
 
 # Swagger
 springdoc:

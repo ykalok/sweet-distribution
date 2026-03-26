@@ -35,6 +35,8 @@ public record ProductDTO(
         @Min(value = 1, message = "Min order quantity must be >= 1")
         Integer minOrderQuantity,
 
+        String unit,
+
         Boolean isActive,
 
         LocalDateTime createdAt,

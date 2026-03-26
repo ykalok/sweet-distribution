@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Trash2, ShoppingBag, Minus, Plus, Loader2, ArrowRight } from 'lucide-react';
 import { cartApi } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { getDeliveryCharge } from '../../lib/billingConfig';
 
 interface CartItemData {
   id: string;
@@ -13,7 +14,7 @@ interface CartItemData {
   subtotal: number;
 }
 
-export const Cart = ({ onCheckout }: { onCheckout: () => void }) => {
+export const Cart = ({ onCheckout, onCartUpdate }: { onCheckout: () => void; onCartUpdate?: () => void }) => {
   const { profile } = useAuth();
   const [cart, setCart] = useState<CartItemData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,6 +26,7 @@ export const Cart = ({ onCheckout }: { onCheckout: () => void }) => {
     try {
       const { data } = await cartApi.get();
       setCart(data.data || []);
+      onCartUpdate?.();
     } catch (err) {
       console.error('Error fetching cart:', err);
     }
@@ -56,6 +58,8 @@ export const Cart = ({ onCheckout }: { onCheckout: () => void }) => {
 
   const totalAmount = cart.reduce((sum, item) => sum + item.subtotal, 0);
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const delivery = getDeliveryCharge(totalAmount);
+  const total = totalAmount * 1.18 + delivery.charge;
 
   if (loading) {
     return (
@@ -151,14 +155,16 @@ export const Cart = ({ onCheckout }: { onCheckout: () => void }) => {
               </div>
               <div className="flex justify-between text-gray-500">
                 <span>Delivery</span>
-                <span className="font-medium text-emerald-600">Free</span>
+                {delivery.charge === 0
+                  ? <span className="font-medium text-emerald-600">Free</span>
+                  : <span className="font-medium text-gray-900">₹{delivery.charge.toFixed(2)}</span>}
               </div>
             </div>
 
             <div className="border-t border-gray-100 pt-4 mb-6">
               <div className="flex justify-between items-center">
                 <span className="font-bold text-gray-900">Total</span>
-                <span className="text-2xl font-bold text-gray-900">₹{(totalAmount * 1.18).toFixed(2)}</span>
+                <span className="text-2xl font-bold text-gray-900">₹{total.toFixed(2)}</span>
               </div>
             </div>
 

@@ -36,7 +36,7 @@ export const Login = ({ onToggle }: { onToggle: () => void }) => {
             <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-6">
               <span className="text-3xl">🍬</span>
             </div>
-            <h2 className="text-3xl font-bold mb-3">B2B Sweet Distribution</h2>
+            <h2 className="text-3xl font-bold mb-3">F&C Sweets</h2>
             <p className="text-white/80 text-sm leading-relaxed">
               Your trusted partner for premium Indian sweets. Order in bulk, track deliveries, and manage your sweet business effortlessly.
             </p>
@@ -60,7 +60,7 @@ export const Login = ({ onToggle }: { onToggle: () => void }) => {
               <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
                 <span className="text-xl">🍬</span>
               </div>
-              <span className="font-bold text-lg text-gray-900">B2B Sweets</span>
+              <span className="font-bold text-lg text-gray-900">F&C Sweets</span>
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back</h1>
             <p className="text-gray-500 text-sm">Sign in to continue to your dashboard</p>
